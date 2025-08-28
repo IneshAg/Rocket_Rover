@@ -1,7 +1,7 @@
-#include "gridmap.h"
-#include "odometry.h"
-#include "planning.h"
-#include "ublox_reader.h"
+#include "../lib/gridmap.h"
+#include "../lib/odometry.h"
+#include "../lib/planning.h"
+#include "../lib/ublox_reader.h"
 #include <cmath>
 #include <fstream>
 #include <iostream>

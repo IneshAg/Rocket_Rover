@@ -1,4 +1,4 @@
-#include "ublox_reader.h"
+#include "../lib/ublox_reader.h"
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -38,15 +38,15 @@ int decodeUBX(uint8_t *buffer, classId *gps) {
   return 1;
 }
 
-GPSData gpsFromData(const classId &gps) {
-  GPSData out;
+GPS gpsFromData(const classId &gps) {
+  GPS out;
   out.lat = gps.lat * 1e-7;
   out.lon = gps.lon * 1e-7;
-  out.height = gps.height / 1000.0;
+  out.height = gps.height / 1000.0; // Convert mm to meters
   return out;
 }
 
-pair<GPSData, GPSData> readUbloxFile(const string &filename) {
+pair<GPS, GPS> readUbloxFile(const string &filename) {
   ifstream file(filename);
   if (!file.is_open()) {
     cerr << "Error: cannot open file " << filename << endl;
@@ -62,12 +62,12 @@ pair<GPSData, GPSData> readUbloxFile(const string &filename) {
   vector<uint8_t> startBytes = hexToBytes(rawStart);
   vector<uint8_t> goalBytes = hexToBytes(rawGoal);
 
-  classId gpsStartData = {0, 0, 0, 0, 0, 0, 0}, gpsGoalData = {0, 0, 0, 0, 0, 0, 0};
+  classId gpsStartData, gpsGoalData;
   decodeUBX(startBytes.data(), &gpsStartData);
   decodeUBX(goalBytes.data(), &gpsGoalData);
 
-  GPSData startGPS = gpsFromData(gpsStartData);
-  GPSData goalGPS = gpsFromData(gpsGoalData);
+  GPS startGPS = gpsFromData(gpsStartData);
+  GPS goalGPS = gpsFromData(gpsGoalData);
 
   file.close();
 
