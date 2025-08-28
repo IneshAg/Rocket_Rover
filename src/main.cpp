@@ -23,9 +23,9 @@ pair<double, double> directionFromAngle(double angle_deg)
 int main(int argc, char *argv[])
 {
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        cerr << "Usage: " << argv[0] << " <gps_data_file>" << endl;
+        cerr << "Usage: " << argv[0] << " <gps_data_file> <output_file>" << endl;
         return 1;
     }
 
@@ -37,11 +37,15 @@ int main(int argc, char *argv[])
 
     // decode GPS data from file
     auto result = readUbloxFile(gps_data);
-    if (static_cast<int>(result.first.lat) == 0 && static_cast<int>(result.first.lon) == 0 && static_cast<int>(result.second.lat) == 0 && static_cast<int>(result.second.lon) == 0)
+    
+    // Check if GPS coordinates are valid (not zero)
+    if (result.first.lat == 0.0 && result.first.lon == 0.0 && 
+        result.second.lat == 0.0 && result.second.lon == 0.0)
     {
         cout << "Error: Invalid GPS Coordinates" << endl;
         return 1;
     }
+    
     cout << "Start -> Lat: " << result.first.lat << " Lon: " << result.first.lon
          << endl;
     cout << "Goal  -> Lat: " << result.second.lat << " Lon: " << result.second.lon
@@ -67,6 +71,12 @@ int main(int argc, char *argv[])
     // Path planning
     Planner planner(grid.getGrid());
     auto path = planner.pathplanning(start, goal);
+
+    // Check if path was found
+    if (path.empty()) {
+        cout << "Error: No path found to goal" << endl;
+        return 1;
+    }
 
     // print planned path
     cout << "Planned Path:" << endl;

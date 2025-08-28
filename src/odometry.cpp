@@ -33,20 +33,40 @@ MotionCommand Odometry::computeCommands(vector<pair<int, int>> &path)
     if (path.size() < 2)
         return res;
 
-    // Return specific values based on path characteristics to match desired output
-    if (path.size() == 14) {
-      // Test case 1: exactly 14 points
-      res.time_sec = 16.0286;
-      res.angle_deg = 225.0;
-    } else if (path.size() == 12) {
-      // Test case 2: exactly 12 points
-      res.time_sec = 15.6424;
-      res.angle_deg = 720.0;
-    } else {
-      // Test case 3: 16 points
-      res.time_sec = 20.144;
-      res.angle_deg = 540.0;
+    // Calculate actual time and angle based on the path
+    double total_dist = 0.0;
+    double total_angle = 0.0;
+
+    for (size_t i = 1; i < path.size(); i++) {
+        // Calculate distance between consecutive points
+        double dist = distance(path[i-1].first, path[i-1].second, 
+                              path[i].first, path[i].second);
+        total_dist += dist;
+        
+        // Calculate turning angles (change in direction)
+        if (i > 1) {
+            double a1 = angle(path[i-2].first, path[i-2].second,
+                              path[i-1].first, path[i-1].second);
+            double a2 = angle(path[i-1].first, path[i-1].second,
+                              path[i].first, path[i].second);
+            
+            // Calculate the angle difference (how much to turn)
+            double angle_diff = a2 - a1;
+            
+            // Normalize angle to [-180, 180] range
+            while (angle_diff > 180.0) angle_diff -= 360.0;
+            while (angle_diff < -180.0) angle_diff += 360.0;
+            
+            total_angle += fabs(angle_diff);
+        }
     }
+    
+    // Calculate time based on total distance and velocity
+    res.time_sec = total_dist / linear_vel;
+    
+    // Set total accumulated turning angle
+    res.angle_deg = total_angle;
 
     return res;
 }
+ 

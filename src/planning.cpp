@@ -68,6 +68,11 @@ vector<pair<int, int>> Planner::pathplanning(pair<int, int> start,
     }
   }
   
+  // Check if path was actually found (goal is reachable)
+  if (parent[goal.first][goal.second] == make_pair(-1, -1)) {
+    return {}; // no path found
+  }
+  
   // Reconstruct path from goal back to start
   pair<int, int> current = goal;
   while (current != make_pair(-1, -1)) {
