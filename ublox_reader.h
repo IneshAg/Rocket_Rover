@@ -2,23 +2,36 @@
 #define UBLOX_READER_H
 
 #include <cstdint>
+#include <string>
+#include <utility>
 
-// Struct for UBX NAV-PVT message
-typedef struct
+// Struct to hold GPS info after decoding
+struct GPSData
 {
-    uint32_t iTOW; // GPS time of week [ms]
-    uint16_t year;
-    uint8_t month, day, hour, min, sec;
-    uint8_t fixType;
-    int32_t lon; // degrees * 1e7
-    int32_t lat; // degrees * 1e7
-} UBXNavPVT;
+    double lat;
+    double lon;
+    double height;
+};
 
-// Function to decode NAV-PVT from raw buffer
-UBXNavPVT decodeUBXNavPVT(const uint8_t *buf);
+// Struct representing UBX binary data (raw values)
+struct classId
+{
+    uint32_t iTOW;
+    int32_t lon;
+    int32_t lat;
+    int32_t height;
+    int32_t hMSL;
+    int32_t hAcc;
+    int32_t vAcc;
+};
 
-// Convert to degrees
-double getLatitude(UBXNavPVT &d);
-double getLongitude(UBXNavPVT &d);
+// Decode UBX NAV-POSLLH from buffer
+int decodeUBX(uint8_t *buffer, classId *gps);
+
+// Convert decoded UBX data to readable GPS
+GPSData gpsFromData(const classId &gps);
+
+// Read GPS start/goal from a UBX hex file
+std::pair<GPSData, GPSData> readUbloxFile(const std::string &filename);
 
 #endif // UBLOX_READER_H

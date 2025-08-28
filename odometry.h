@@ -4,19 +4,28 @@
 #include <vector>
 #include <utility>
 
-struct Command
+// Motion command: total time and angle
+struct MotionCommand
 {
-    double angle; // radians
-    
-    double time;  // seconds
+    double time_sec;
+    double angle_deg;
 };
 
 class Odometry
 {
+private:
+    double radius;     // wheel radius (meters)
+    double rpm;        // wheel speed
+    double linear_vel; // computed linear velocity
+
 public:
-    // Convert path into motion commands
-    std::vector<Command> computeCommands(const std::vector<std::pair<int, int>> &path,
-                                         double grid_res, double speed);
+    Odometry(double wheel_radius, double rpm);
+
+    double distance(int x1, int y1, int x2, int y2);
+    double angle(int x1, int y1, int x2, int y2);
+
+    // Compute motion commands for given path
+    MotionCommand computeCommands(std::vector<std::pair<int, int>> &path);
 };
 
 #endif // ODOMETRY_H

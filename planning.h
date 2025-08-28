@@ -6,12 +6,19 @@
 
 class Planner
 {
+private:
+    std::vector<std::vector<bool>> grid;
+    int rows, cols;
+
 public:
-    // Grid-based path planning from start to goal
-    std::vector<std::pair<int, int>> pathplanning(
-        int startX, int startY,
-        int goalX, int goalY,
-        const std::vector<std::vector<int>> &grid);
+    Planner(const std::vector<std::vector<bool>> &grid);
+    bool isvalid(int x, int y) const;
+    double heuristic(int x1, int y1, int x2, int y2) const;
+
+    // Returns list of grid coordinates from start to goal
+    std::vector<std::pair<int, int>> pathplanning(std::pair<int, int> start, std::pair<int, int> goal);
+
+    std::vector<std::vector<bool>> getGrid() const { return grid; }
 };
 
 #endif // PLANNING_H

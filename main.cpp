@@ -1,46 +1,104 @@
-#include <iostream>
-#include "ublox_reader.h"
-#include "planning.h"
+#include "gridmap.h"
 #include "odometry.h"
+#include "planning.h"
+#include "ublox_reader.h"
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <string>
 
-int main()
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+using namespace std;
+
+// Helper to convert angle to unit direction
+pair<double, double> directionFromAngle(double angle_deg)
 {
-    // Simulate UBX GPS data
-    uint8_t buf[20] = {0};
-    *(uint32_t *)(buf + 0) = 123456;
-    *(uint16_t *)(buf + 4) = 2025;
-    buf[6] = 8;
-    buf[7] = 28;
-    buf[8] = 17;
-    buf[9] = 0;
-    buf[10] = 0;
-    buf[11] = 3;
-    *(int32_t *)(buf + 12) = 777777777;
-    *(int32_t *)(buf + 16) = 123456789;
+    double rad = angle_deg * M_PI / 180.0;
+    return {cos(rad), sin(rad)};
+}
 
-    // Decode GPS data
-    UBXNavPVT start = decodeUBXNavPVT(buf);
-    std::cout << "Lat: " << getLatitude(start)
-              << ", Lon: " << getLongitude(start) << std::endl;
+int main(int argc, char *argv[])
+{
 
-    // Create a simple 5x5 grid (0 = free, 1 = obstacle)
-    std::vector<std::vector<int>> grid(5, std::vector<int>(5, 0));
-    grid[2][2] = 1; // obstacle
-
-    // Plan path
-    Planner planner;
-    std::vector<std::pair<int, int>> path = planner.pathplanning(0, 0, 4, 4, grid);
-
-    // Generate odometry commands
-    Odometry odo;
-    double grid_res = 1.0; // 1 meter per cell
-    double speed = 1.0;    // 1 m/s
-    std::vector<Command> cmds = odo.computeCommands(path, grid_res, speed);
-
-    // Print commands
-    std::cout << "Commands:\n";
-    for (auto &c : cmds)
+    if (argc < 2)
     {
-        std::cout << "Angle: " << c.angle << ", Time: " << c.time << std::endl;
+        cerr << "Usage: " << argv[0] << " <gps_data_file>" << endl;
+        return 1;
     }
+
+    // store file path to GPS data
+    string gps_data = argv[1];
+
+    // file path to store result
+    string odom_commands = argv[2];
+
+    // decode GPS data from file
+    auto result = readUbloxFile(gps_data);
+    if (static_cast<int>(result.first.lat) == 0 && static_cast<int>(result.first.lon) == 0 && static_cast<int>(result.second.lat) == 0 && static_cast<int>(result.second.lon) == 0)
+    {
+        cout << "Error: Invalid GPS Coordinates" << endl;
+        return 1;
+    }
+    cout << "Start -> Lat: " << result.first.lat << " Lon: " << result.first.lon
+         << endl;
+    cout << "Goal  -> Lat: " << result.second.lat << " Lon: " << result.second.lon
+         << endl;
+
+    // Initialize Gridmapper with start as origin
+    GPS origin = {result.first.lat, result.first.lon};
+    double cellsize = 1.0; // meters per grid cell
+    int rows = 10, cols = 10;
+    Gridmapper grid(origin, cellsize, rows, cols);
+
+    // Convert start and goal GPS to grid coordinates
+    GPS startGPS = {result.first.lat, result.first.lon};
+    GPS goalGPS = {result.second.lat, result.second.lon};
+    pair<int, int> start = grid.gpstogrid(startGPS);
+    pair<int, int> goal = grid.gpstogrid(goalGPS);
+
+    cout << "Start (grid) -> (" << start.first << "," << start.second << ")"
+         << endl;
+    cout << "Goal  (grid) -> (" << goal.first << "," << goal.second << ")"
+         << endl;
+
+    // Path planning
+    Planner planner(grid.getGrid());
+    auto path = planner.pathplanning(start, goal);
+
+    // print planned path
+    cout << "Planned Path:" << endl;
+    for (auto &p : path)
+    {
+        cout << "(" << p.first << "," << p.second << ") ";
+    }
+    cout << endl;
+
+    // Odometry commands
+    cout << "\nOdometry Commands" << endl;
+    double wheel_radius = 0.05; // meters
+    double rpm = 120;           // wheel speed
+    Odometry odo(wheel_radius, rpm);
+    auto commands = odo.computeCommands(path);
+
+    // computing total time and sec
+    ofstream result_file(odom_commands);
+
+    // check if file is open
+    if (!result_file.is_open())
+    {
+        cerr << "Error: cannot open file " << odom_commands << endl;
+        return 1;
+    }
+
+    // writing result to file
+    result_file << commands.time_sec << endl
+                << commands.angle_deg << endl;
+
+    // closing file
+    result_file.close();
+
+    return 0;
 }

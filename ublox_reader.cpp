@@ -1,33 +1,78 @@
+#include "ublox_reader.h"
 #include <cstdint>
-#include <iostream>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
-typedef struct
-{
-    uint32_t iTOW; // It tells us the variable is unsigned int and has 32 bits and it stores the Gps Time in milliseconds
-    uint16_t year; //  It tells us the Year
-    uint8_t month, day, hour, min, sec; //  It tells us the month,day,hr etc
-    uint8_t fixType;  //  It will have a single byte dedicated to tell us in a way whether it is true or false but just instead of 0 and 1 it has 0,1,2 
-    int32_t lon;     // It tells us the longitude
-    int32_t lat;     //  It tells us the latitude
-} UBXNavPVT; // Name of the struct
+using namespace std;
 
-UBXNavPVT decodeUBXNavPVT(const uint8_t *buf) // decodeUBXNavPVT here would take the sequence of bytes it receives and convert into the above variables
-{
-    UBXNavPVT data;
-    std::memcpy(&data.iTOW, buf + 0, sizeof(data.iTOW)); //It copies the first 4 bytes data from the buffer into the iTOW
-    std::memcpy(&data.year, buf + 4, sizeof(data.year)); // It does the same as above just the starting position is index 4 of buffer
-    // Rest does the same in order 
-    data.month = buf[6];
-    data.day = buf[7];
-    data.hour = buf[8];
-    data.min = buf[9];
-    data.sec = buf[10];
-    data.fixType = buf[11];
-    std::memcpy(&data.lon, buf + 12, sizeof(data.lon));
-    std::memcpy(&data.lat, buf + 16, sizeof(data.lat));
-    return data;
+static int NAV_POSLLH(uint8_t *buffer, classId *gps) {
+  memcpy(&gps->iTOW, buffer, 4);
+  memcpy(&gps->lon, buffer + 4, 4);
+  memcpy(&gps->lat, buffer + 8, 4);
+  memcpy(&gps->height, buffer + 12, 4);
+  memcpy(&gps->hMSL, buffer + 16, 4);
+  memcpy(&gps->hAcc, buffer + 20, 4);
+  memcpy(&gps->vAcc, buffer + 24, 4);
+  return 0;
 }
 
-double getLatitude(UBXNavPVT &d) { return d.lat / 1e7; } // It divides the latitude received from buffer by 10^7
-double getLongitude(UBXNavPVT &d) { return d.lon / 1e7; }
+static vector<uint8_t> hexToBytes(const string &rawHex) {
+  vector<uint8_t> bytes;
+  stringstream ss(rawHex);
+  string token;
+  while (ss >> token) {
+    bytes.push_back(static_cast<uint8_t>(stoul(token, nullptr, 16)));
+  }
+  return bytes;
+}
+
+int decodeUBX(uint8_t *buffer, classId *gps) {
+  // Check for UBX header (0xB5 0x62)
+  if (buffer[0] == 0xB5 && buffer[1] == 0x62) {
+    // Check for NAV class (0x01) and POSLLH message ID (0x02)
+    if (buffer[2] == 0x01 && buffer[3] == 0x02) {
+      return NAV_POSLLH(buffer + 6, gps); // Skip header (2) + class (1) + id (1) + length (2)
+    }
+  }
+  return 1;
+}
+
+GPSData gpsFromData(const classId &gps) {
+  GPSData out;
+  out.lat = gps.lat * 1e-7;
+  out.lon = gps.lon * 1e-7;
+  out.height = gps.height / 1000.0;
+  return out;
+}
+
+pair<GPSData, GPSData> readUbloxFile(const string &filename) {
+  ifstream file(filename);
+  if (!file.is_open()) {
+    cerr << "Error: cannot open file " << filename << endl;
+    return {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+  }
+  string rawStart, rawGoal;
+  getline(file, rawStart);
+  getline(file, rawGoal);
+
+  cout << "Raw UBX Start: " << rawStart << endl;
+  cout << "Raw UBX Goal : " << rawGoal << endl;
+
+  vector<uint8_t> startBytes = hexToBytes(rawStart);
+  vector<uint8_t> goalBytes = hexToBytes(rawGoal);
+
+  classId gpsStartData = {0, 0, 0, 0, 0, 0, 0}, gpsGoalData = {0, 0, 0, 0, 0, 0, 0};
+  decodeUBX(startBytes.data(), &gpsStartData);
+  decodeUBX(goalBytes.data(), &gpsGoalData);
+
+  GPSData startGPS = gpsFromData(gpsStartData);
+  GPSData goalGPS = gpsFromData(gpsGoalData);
+
+  file.close();
+
+  return {startGPS, goalGPS};
+}

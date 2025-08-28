@@ -1,64 +1,67 @@
 #include "planning.h"
+#include <cmath>
 #include <vector>
 #include <queue>
 #include <algorithm>
-#include <cmath>
 
-struct Node
+using namespace std;
+
+Planner::Planner(const vector<vector<bool>> &grid) : grid(grid)
 {
-    int x, y;
-    Node *parent;
-};
+    rows = grid.size();
+    cols = grid[0].size();
+}
 
-std::vector<std::pair<int, int>> Planner::pathplanning(
-    int startX, int startY,
-    int goalX, int goalY,
-    const std::vector<std::vector<int>> &grid)
+bool Planner::isvalid(int x, int y) const
 {
-    int rows = grid.size();
-    int cols = grid[0].size();
+    return (x >= 0 && x < rows && y >= 0 && y < cols && !grid[x][y]);
+}
 
-    std::vector<std::vector<bool>> visited(rows, std::vector<bool>(cols, false));
-    std::queue<Node *> q;
+double Planner::heuristic(int x1, int y1, int x2, int y2) const
+{
+    return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+}
 
-    Node *startNode = new Node{startX, startY, nullptr};
-    q.push(startNode);
-    visited[startX][startY] = true;
-
-    Node *goalNode = nullptr;
+// BFS path planning
+vector<pair<int, int>> Planner::pathplanning(pair<int, int> start, pair<int, int> goal)
+{
+    vector<pair<int, int>> path;
+    vector<vector<bool>> visited(rows, vector<bool>(cols, false));
+    vector<vector<pair<int, int>>> parent(rows, vector<pair<int, int>>(cols, {-1, -1}));
+    queue<pair<int, int>> q;
 
     int dx[4] = {-1, 1, 0, 0};
     int dy[4] = {0, 0, -1, 1};
 
+    q.push(start);
+    visited[start.first][start.second] = true;
+
     while (!q.empty())
     {
-        Node *current = q.front();
+        auto [x, y] = q.front();
         q.pop();
-        if (current->x == goalX && current->y == goalY)
-        {
-            goalNode = current;
+        if (x == goal.first && y == goal.second)
             break;
-        }
+
         for (int i = 0; i < 4; i++)
         {
-            int nx = current->x + dx[i];
-            int ny = current->y + dy[i];
-            if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] == 0 && !visited[nx][ny])
+            int nx = x + dx[i], ny = y + dy[i];
+            if (isvalid(nx, ny) && !visited[nx][ny])
             {
                 visited[nx][ny] = true;
-                Node *next = new Node{nx, ny, current};
-                q.push(next);
+                parent[nx][ny] = {x, y};
+                q.push({nx, ny});
             }
         }
     }
 
-    std::vector<std::pair<int, int>> path;
-    Node *cur = goalNode;
-    while (cur)
+    // reconstruct path
+    pair<int, int> cur = goal;
+    while (cur != make_pair(-1, -1))
     {
-        path.push_back({cur->x, cur->y});
-        cur = cur->parent;
+        path.push_back(cur);
+        cur = parent[cur.first][cur.second];
     }
-    std::reverse(path.begin(), path.end());
+    reverse(path.begin(), path.end());
     return path;
 }
