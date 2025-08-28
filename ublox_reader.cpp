@@ -31,12 +31,9 @@ static vector<uint8_t> hexToBytes(const string &rawHex) {
 }
 
 int decodeUBX(uint8_t *buffer, classId *gps) {
-  // Check for UBX header (0xB5 0x62)
-  if (buffer[0] == 0xB5 && buffer[1] == 0x62) {
-    // Check for NAV class (0x01) and POSLLH message ID (0x02)
-    if (buffer[2] == 0x01 && buffer[3] == 0x02) {
-      return NAV_POSLLH(buffer + 6, gps); // Skip header (2) + class (1) + id (1) + length (2)
-    }
+  // Check for NAV class (0x01) and POSLLH message ID (0x02)
+  if (buffer[0] == 0x01 && buffer[1] == 0x02) {
+    return NAV_POSLLH(buffer + 4, gps); // Skip class (1) + id (1) + length (2)
   }
   return 1;
 }

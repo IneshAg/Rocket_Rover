@@ -1,4 +1,4 @@
-# GPS Path Planning Rover Project
+# GPS Path Rover 
 
 ## Understanding the Problem
 
