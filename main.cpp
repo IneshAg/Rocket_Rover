@@ -5,28 +5,42 @@
 
 int main()
 {
-    // Sample raw GPS buffer (replace with actual UBX data)
-    uint8_t buffer[20] = {/* fill with UBX payload */};
-    UBXNavPVT gpsData = decodeUBXNavPVT(buffer);
-    std::cout << "Lat: " << getLatitude(gpsData) << ", Lon: " << getLongitude(gpsData) << "\n";
+    // Simulate UBX GPS data
+    uint8_t buf[20] = {0};
+    *(uint32_t *)(buf + 0) = 123456;
+    *(uint16_t *)(buf + 4) = 2025;
+    buf[6] = 8;
+    buf[7] = 28;
+    buf[8] = 17;
+    buf[9] = 0;
+    buf[10] = 0;
+    buf[11] = 3;
+    *(int32_t *)(buf + 12) = 777777777;
+    *(int32_t *)(buf + 16) = 123456789;
 
-    // Gridmap: 0 = free, 1 = obstacle
-    std::vector<std::vector<int>> grid = {
-        {0, 0, 0, 0},
-        {0, 1, 1, 0},
-        {0, 0, 0, 0}};
+    // Decode GPS data
+    UBXNavPVT start = decodeUBXNavPVT(buf);
+    std::cout << "Lat: " << getLatitude(start)
+              << ", Lon: " << getLongitude(start) << std::endl;
 
+    // Create a simple 5x5 grid (0 = free, 1 = obstacle)
+    std::vector<std::vector<int>> grid(5, std::vector<int>(5, 0));
+    grid[2][2] = 1; // obstacle
+
+    // Plan path
     Planner planner;
-    auto path = planner.pathplanning(0, 0, 2, 3, grid);
+    std::vector<std::pair<int, int>> path = planner.pathplanning(0, 0, 4, 4, grid);
 
-    Odometry odom;
-    auto commands = odom.computeCommands(path, 1.0, 0.5);
+    // Generate odometry commands
+    Odometry odo;
+    double grid_res = 1.0; // 1 meter per cell
+    double speed = 1.0;    // 1 m/s
+    std::vector<Command> cmds = odo.computeCommands(path, grid_res, speed);
 
+    // Print commands
     std::cout << "Commands:\n";
-    for (auto &cmd : commands)
+    for (auto &c : cmds)
     {
-        std::cout << "Angle: " << cmd.angle << ", Time: " << cmd.time << "\n";
+        std::cout << "Angle: " << c.angle << ", Time: " << c.time << std::endl;
     }
-
-    return 0;
 }
