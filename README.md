@@ -1,142 +1,25 @@
-# GPS Path Rover 
+# Rocket_Rover
 
-## Understanding the Problem
+# Understanding the Problem
 
-This project implements a complete GPS-based path planning system for a rover. The system:
-1. Decodes GPS data from u-blox GNSS module in UBX format
-2. Converts GPS coordinates to grid positions
-3. Plans optimal paths using a grid-based algorithm
-4. Generates odometry commands for rover movement
 
-## Thought Process and Implementation
+Initially I searched Google and ChatGPT for info on it as I don't know what the ubx format and u-blox receiver are.
 
-### Task 1: UBX GPS Decoding
-**Initial Challenge**: Understanding UBX format and binary data structure
-**Solution**: 
-- Researched UBX protocol documentation online
-- Fixed the `decodeUBX` function to properly check UBX headers (0xB5 0x62)
-- Corrected buffer indexing for NAV-POSLLH message parsing
-- Fixed memory copying offsets for latitude, longitude, and other fields
-- Added proper initialization of GPS data structures
+Then I put the small chunks of question into GPT to allow me understand what is going on here. So the first part of the code ublox_reader would receive the receiver's data which is 20 bytes (longitude,latitude ,time,date,whether gps has a valid position locked on) and then decodes it for the UBX packets as the data received is binary-encoded packets (structured sequence of bytes that can be read and interpreted by the required software based on our needs and here our need is the microcontroller inside the rover).
 
-**Key Fixes**:
-- Changed buffer indices from `buffer[30]` and `buffer[32]` to `buffer[0]`, `buffer[1]`, `buffer[2]`, `buffer[3]`
-- Fixed NAV_POSLLH function to properly copy longitude and latitude from correct buffer positions
-- Added proper struct initialization to avoid uninitialized variable warnings
 
-### Task 2: Path Planning Algorithm
-**Implementation**: Used Breadth-First Search (BFS) algorithm
-**Reasoning**: BFS guarantees the shortest path in an unweighted grid
-**Features**:
-- 4-directional movement (up, down, left, right)
-- Obstacle avoidance using the predefined grid map
-- Path reconstruction from goal back to start
-- Returns optimal path as sequence of grid coordinates
+I was unable to form the code myself as I don't know the libraries used and I can't fully learn it in 1 hr so initially the first code made by GPT was fully understood by me which is ublox_reader.cpp and then afterwards I didn't have the time to understand the rest of the code so I left the understanding and tried to build as I believed that even GPT was building it I would be able to understand it myself a little bit and I did but later they said that we can fix the code till morning then i started making the code again using gpt and trying to fix the issue of the testcase's result not matching my result but i was unable to fix it as i dont know this things properly nor did i have time to understand them in detail.
 
-### Task 3: Odometry Commands
-**Implementation**: Computed motion commands based on wheel physics
-**Calculations**:
-- Linear velocity = 2π × wheel_radius × (rpm/60)
-- Time = distance / linear_velocity
-- Angle = atan2(dy, dx) converted to degrees
-- Accumulated total time and rotation angles
 
-### Task 4: Compilation and Testing
-**Challenge**: Windows environment without standard make utility
-**Solution**: Used `mingw32-make` (included with MinGW) with proper Makefile
-**Result**: Successful compilation with g++ showing "*** Success: ***"
+ Afterwards i went through the entire code and tried to understand the entire code and made comments on each line of code too to show what it does in my own wording
 
-## Technical Details
+While as required i was not able to build it but if i learn it properly in a bit more structured manner i believe i can understand and also form these types of codes  
 
-### UBX Format Understanding
-- UBX messages start with header: 0xB5 0x62
-- NAV-POSLLH message: Class=0x01, ID=0x02
-- GPS coordinates stored as 32-bit integers in 1e-7 degree units
-- Height stored in millimeters
 
-### Grid Mapping
-- 10×10 grid with 1-meter cell size
-- GPS coordinates converted using: meters = degrees × 111320
-- Obstacles predefined in specific grid positions
+# Thought Process and Implementation
 
-### Path Planning Algorithm
-```cpp
-// BFS implementation with 4-directional movement
-int dx[4] = {-1, 1, 0, 0};  // left, right, up, down
-int dy[4] = {0, 0, -1, 1};
-```
 
-### Odometry Calculations
-```cpp
-// Wheel physics
-linear_vel = 2 * M_PI * radius * (rpm / 60.0);
-time_sec = distance / linear_vel;
-angle_deg = atan2(y2-y1, x2-x1) * 180.0 / M_PI;
-```
+This project is a GPS-based path planning system for a rover and it first decodes GPS data from u-blox GNSS module in UBX format which is converted to Converts GPS coordinates and then by checking the gridmap and understanding the location we can plan the fastest and most efficient path and finally generates odometry commands(movement of rover step by step like forward,rotate,reverse etc ) for rover movement
 
-## Resources Used
 
-1. **Online Documentation**: UBX protocol specifications for proper message parsing
-2. **AI Assistance**: Used AI to understand UBX format and debug buffer indexing issues
-3. **Google Search**: Researched GPS coordinate conversion formulas and BFS path planning
-4. **Stack Overflow**: Referenced for C++ compilation issues and M_PI constant definition
-
-## Challenges Faced
-
-1. **UBX Format**: Initially struggled with binary data parsing and buffer indexing
-2. **Windows Environment**: Had to create alternative to make commands
-3. **GPS Coordinate Conversion**: Understanding the relationship between degrees and meters
-4. **Grid Mapping**: Converting GPS coordinates to grid positions accurately
-
-## Build Instructions
-
-### Using Makefile (Recommended)
-```bash
-# Build the project
-mingw32-make build
-
-# Check if build is successful
-mingw32-make check
-
-# Clean build files
-mingw32-make clean
-
-# Run with test data
-mingw32-make test
-
-# Show help
-mingw32-make help
-```
-
-### Direct Compilation
-```bash
-g++ -std=c++17 -Wall -Wextra -O2 main.cpp ublox_reader.cpp planning.cpp odometry.cpp gridmap.cpp -o rover
-```
-
-## Testing Results
-
-- ✅ UBX decoding: Successfully extracts latitude and longitude
-- ✅ Grid mapping: Creates proper 10×10 grid with obstacles
-- ✅ Path planning: BFS finds optimal paths avoiding obstacles
-- ✅ Odometry: Computes correct time and angle commands
-- ✅ Compilation: Builds successfully with mingw32-make
-
-## Files Modified
-
-1. **ublox_reader.cpp**: Fixed UBX decoding logic and buffer indexing
-2. **planning.cpp**: Implemented BFS path planning algorithm
-3. **odometry.cpp**: Implemented motion command calculations
-4. **main.cpp**: Added M_PI definition for Windows compatibility
-5. **Makefile**: Created comprehensive build system for MinGW
-6. **README.md**: This comprehensive documentation
-
-## Conclusion
-
-All four tasks have been successfully completed. The system can:
-- Decode UBX GPS data correctly
-- Plan optimal paths through grid obstacles
-- Generate proper odometry commands
-- Compile and run successfully
-
-The implementation demonstrates understanding of GPS protocols, path planning algorithms, and robotic motion control principles. 
-
+My first thought was to understand the topic and what is ubx and how it is converted and used here as if i dont understand the topic how can i even try to build something on it so i read the pdf given a little bit but it was headache to understand as i dont know what is going on there nor do i have the time to understand it properly so i opened the documentation online and searched on ChatGPT to understand it and then when i understood i first tried to frame the code myself but time was running out so i just put my edits along with the code given to gpt and it fixed it 
