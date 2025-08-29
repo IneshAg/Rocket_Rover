@@ -23,3 +23,13 @@ This project is a GPS-based path planning system for a rover and it first decode
 
 
 My first thought was to understand the topic and what is ubx and how it is converted and used here as if i dont understand the topic how can i even try to build something on it so i read the pdf given a little bit but it was headache to understand as i dont know what is going on there nor do i have the time to understand it properly so i opened the documentation online and searched on ChatGPT to understand it and then when i understood i first tried to frame the code myself but time was running out so i just put my edits along with the code given to gpt and it fixed it 
+
+After learning i had more time till tomorrow noon I worked on the code and tried to understand the rest of the files also And I did understood a bit a bit the main problem is the math in the odometry and so dealing with it was a bit difficult
+
+I also thought of trying out the dijkstra algorithm  But Chat GpT told the current one is better so I left it like that
+
+Next i understood the odometry file and then i changed it up a bit and crossed checked it with gpt and then was done with it
+
+After that i tried to understand how to run your testcases here and i did it and then i crosschecked the results and it didnt match and so i tried to fix the odometry multiples time but alas it didnt happen so i left it like this only 
+
+Thanks to you i learnt a bit about advanced uses of c++

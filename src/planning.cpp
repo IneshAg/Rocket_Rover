@@ -10,10 +10,12 @@ Planner::Planner(const vector<vector<bool>> &grid) : grid(grid) {
   rows = grid.size();
   cols = grid[0].size();
 }
+// It takes a grid as input and stores and then calculates the number of rows and columns
 
 bool Planner::isvalid(int x, int y) const {
   return (x >= 0 && x < rows && y >= 0 && y < cols && !grid[x][y]);
 }
+// it checks whether X and Y are inside the grid or not and if the Coordinates are an obstacle or not
 
 double Planner::heuristic(int x1, int y1, int x2, int y2) const {
   return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
@@ -43,6 +45,7 @@ vector<pair<int, int>> Planner::pathplanning(pair<int, int> start,
   int dx[4] = {-1, 1, 0, 0};
   int dy[4] = {0, 0, -1, 1};
   
+  // BFS checks all the layers one by one and marks them as visited to avoid checking it again and again and also at the same time marks the required path
   q.push(start);
   visited[start.first][start.second] = true;
   
